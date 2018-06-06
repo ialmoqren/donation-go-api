@@ -109,7 +109,7 @@ func GetDonors(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT * FROM donors")
+	rows, err := db.Query("SELECT * FROM donors ORDER BY id;")
 	if err != nil {
 		panic(err)
 	}
@@ -144,7 +144,7 @@ func GetDonor(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 	theEmail := params["email"]
-	sqlStatement := `SELECT * FROM donors WHERE email=$1;`
+	sqlStatement := `SELECT * FROM donors WHERE email=$1 ORDER BY id;`
 	row := db.QueryRow(sqlStatement, theEmail)
 	err = row.Scan(&donor.Id, &donor.Email, &donor.Name, &donor.Gender, &donor.Age, &donor.City, &donor.Password)
 	if err != nil {
@@ -276,7 +276,7 @@ func GetHospitals(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT * FROM hospitals")
+	rows, err := db.Query("SELECT * FROM hospitals ORDER BY id;")
 	if err != nil {
 		panic(err)
 	}
@@ -311,7 +311,7 @@ func GetHospital(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 	theEmail := params["email"]
-	sqlStatement := `SELECT * FROM hospitals WHERE email=$1;`
+	sqlStatement := `SELECT * FROM hospitals WHERE email=$1 ORDER BY id;`
 	row := db.QueryRow(sqlStatement, theEmail)
 	err = row.Scan(&hospital.Id, &hospital.Email, &hospital.Name, &hospital.City, &hospital.Password)
 	if err != nil {
@@ -431,7 +431,7 @@ func GetDonations(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT * FROM donations")
+	rows, err := db.Query("SELECT * FROM donations ORDER BY id;")
 	if err != nil {
 		panic(err)
 	}
@@ -466,7 +466,7 @@ func GetDonorDonations(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	theEmail := params["email"]
 
-	rows, err := db.Query(`SELECT * FROM donations WHERE donor_email=$1;`, theEmail)
+	rows, err := db.Query(`SELECT * FROM donations WHERE donor_email=$1 ORDER BY id;`, theEmail)
 	if err != nil {
 		panic(err)
 	}
