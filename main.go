@@ -56,16 +56,16 @@ type HospitalFmt struct {
 }
 
 type Donation struct {
-	Id         sql.NullInt64  `json:"id"`
-	Type       sql.NullString `json:"type"`
-	Notes      sql.NullString `json:"notes"`
-	DonorEmail sql.NullString `json:"donor_email"`
+	Id      sql.NullInt64  `json:"id"`
+	Type    sql.NullString `json:"type"`
+	Notes   sql.NullString `json:"notes"`
+	DonorId sql.NullString `json:"donor_id"`
 }
 type DonationFmt struct {
-	Id         int64  `json:"id"`
-	Type       string `json:"type"`
-	Notes      string `json:"notes"`
-	DonorEmail string `json:"donor_email"`
+	Id      int64  `json:"id"`
+	Type    string `json:"type"`
+	Notes   string `json:"notes"`
+	DonorId string `json:"donor_id"`
 }
 
 func main() {
@@ -79,17 +79,17 @@ func main() {
 	router.HandleFunc("/donors", GetDonors).Methods("GET")
 	router.HandleFunc("/donors/{email}", GetDonor).Methods("GET")
 	router.HandleFunc("/donors", CreateDonor).Methods("POST")
-	router.HandleFunc("/donors/{email}", UpdateDonor).Methods("POST")
+	router.HandleFunc("/donors/{id}", UpdateDonor).Methods("POST")
 	router.HandleFunc("/donors/{email}", DeleteDonor).Methods("DELETE")
 
 	router.HandleFunc("/hospitals", GetHospitals).Methods("GET")
 	router.HandleFunc("/hospitals/{email}", GetHospital).Methods("GET")
 	router.HandleFunc("/hospitals", CreateHospital).Methods("POST")
-	router.HandleFunc("/hospitals/{email}", UpdateHospital).Methods("POST")
+	router.HandleFunc("/hospitals/{id}", UpdateHospital).Methods("POST")
 	router.HandleFunc("/hospitals/{email}", DeleteHospital).Methods("DELETE")
 
 	router.HandleFunc("/donations", GetDonations).Methods("GET")
-	router.HandleFunc("/donations/{email}", GetDonorDonations).Methods("GET")
+	router.HandleFunc("/donations/{id}", GetDonorDonations).Methods("GET")
 	router.HandleFunc("/donations", CreateDonation).Methods("POST")
 	router.HandleFunc("/donations/{id}", UpdateDonation).Methods("POST")
 	router.HandleFunc("/donations/{id}", DeleteDonation).Methods("DELETE")
@@ -231,19 +231,19 @@ func UpdateDonor(w http.ResponseWriter, r *http.Request) {
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
-		fmt.Println("ERR 1", err.Error)
+		fmt.Println("ERR 1", err.Error())
 		panic(err)
 	}
 	defer db.Close()
 
 	params := mux.Vars(r)
-	theEmail := params["email"]
+	theId := params["id"]
 
-	sqlStatement := `SELECT id FROM donors WHERE email=$1;`
-	row := db.QueryRow(sqlStatement, theEmail)
+	sqlStatement := `SELECT id FROM donors WHERE id=$1;`
+	row := db.QueryRow(sqlStatement, theId)
 	err = row.Scan(&id)
 	if err != nil {
-		fmt.Println("ERR 2", err.Error)
+		fmt.Println("ERR 2", err.Error())
 		fmt.Println("User Does Not Exist!")
 	} else {
 		r.ParseForm()
@@ -253,14 +253,13 @@ func UpdateDonor(w http.ResponseWriter, r *http.Request) {
 		age := r.Form.Get("age")
 		city := r.Form.Get("city")
 		password := r.Form.Get("password")
-		fmt.Println(email, name, gender, age, city, password)
 
 		sqlStatement := `
 		UPDATE donors
 		SET email=$1, name=$2, gender=$3, age=$4, city=$5, password=$6
 		WHERE id=$7;`
 
-		db.QueryRow(sqlStatement, email, name, gender, age, city, password, id)
+		db.QueryRow(sqlStatement, email, name, gender, age, city, password, theId)
 	}
 }
 
@@ -388,19 +387,19 @@ func UpdateHospital(w http.ResponseWriter, r *http.Request) {
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
-		fmt.Println("ERR 1", err.Error)
+		fmt.Println("ERR 1", err.Error())
 		panic(err)
 	}
 	defer db.Close()
 
 	params := mux.Vars(r)
-	theEmail := params["email"]
+	theId := params["id"]
 
-	sqlStatement := `SELECT id FROM hospitals WHERE email=$1;`
-	row := db.QueryRow(sqlStatement, theEmail)
+	sqlStatement := `SELECT id FROM hospitals WHERE id=$1;`
+	row := db.QueryRow(sqlStatement, theId)
 	err = row.Scan(&id)
 	if err != nil {
-		fmt.Println("ERR 2", err.Error)
+		fmt.Println("ERR 2", err.Error())
 		fmt.Println("User Does Not Exist!")
 	} else {
 		r.ParseForm()
@@ -408,14 +407,13 @@ func UpdateHospital(w http.ResponseWriter, r *http.Request) {
 		name := r.Form.Get("name")
 		city := r.Form.Get("city")
 		password := r.Form.Get("password")
-		fmt.Println(email, name, city, password)
 
 		sqlStatement := `
 		UPDATE hospitals
 		SET email=$1, name=$2, city=$3, password=$4
 		WHERE id=$5;`
 
-		db.QueryRow(sqlStatement, email, name, city, password, id)
+		db.QueryRow(sqlStatement, email, name, city, password, theId)
 	}
 }
 
@@ -438,11 +436,11 @@ func GetDonations(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 	for rows.Next() {
 		var donation Donation
-		err = rows.Scan(&donation.Id, &donation.Type, &donation.Notes, &donation.DonorEmail)
+		err = rows.Scan(&donation.Id, &donation.Type, &donation.Notes, &donation.DonorId)
 		if err != nil {
 			panic(err)
 		}
-		donations = append(donations, DonationFmt{Id: donation.Id.Int64, Type: donation.Type.String, Notes: donation.Notes.String, DonorEmail: donation.DonorEmail.String})
+		donations = append(donations, DonationFmt{Id: donation.Id.Int64, Type: donation.Type.String, Notes: donation.Notes.String, DonorId: donation.DonorId.String})
 	}
 	err = rows.Err()
 	if err != nil {
@@ -464,20 +462,20 @@ func GetDonorDonations(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	params := mux.Vars(r)
-	theEmail := params["email"]
+	theId := params["id"]
 
-	rows, err := db.Query(`SELECT * FROM donations WHERE donor_email=$1 ORDER BY id;`, theEmail)
+	rows, err := db.Query(`SELECT * FROM donations WHERE donor_id=$1 ORDER BY id;`, theId)
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var donation Donation
-		err = rows.Scan(&donation.Id, &donation.Type, &donation.Notes, &donation.DonorEmail)
+		err = rows.Scan(&donation.Id, &donation.Type, &donation.Notes, &donation.DonorId)
 		if err != nil {
 			panic(err)
 		}
-		donations = append(donations, DonationFmt{Id: donation.Id.Int64, Type: donation.Type.String, Notes: donation.Notes.String, DonorEmail: donation.DonorEmail.String})
+		donations = append(donations, DonationFmt{Id: donation.Id.Int64, Type: donation.Type.String, Notes: donation.Notes.String, DonorId: donation.DonorId.String})
 	}
 	err = rows.Err()
 	if err != nil {
@@ -501,12 +499,12 @@ func CreateDonation(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	theType := r.Form.Get("type")
 	notes := r.Form.Get("notes")
-	donorEmail := r.Form.Get("donor_email")
+	donorEmail := r.Form.Get("donor_id")
 	fmt.Println(theType, notes, donorEmail)
 
 	sqlStatement := `
 		INSERT INTO donations(
-			type, notes, donor_email)
+			type, notes, donor_id)
 			VALUES  ($1, $2, $3)`
 
 	db.QueryRow(sqlStatement, theType, notes, donorEmail)
