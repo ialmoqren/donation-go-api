@@ -7,8 +7,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"os"
 )
 
 const (
@@ -67,7 +69,13 @@ type DonationFmt struct {
 }
 
 func main() {
+
 	router := mux.NewRouter()
+
+	headersOk := handlers.AllowedHeaders([]string{"POST"})
+	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ORIGIN_ALLOWED")})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+
 	router.HandleFunc("/donors", GetDonors).Methods("GET")
 	router.HandleFunc("/donors/{email}", GetDonor).Methods("GET")
 	router.HandleFunc("/donors", CreateDonor).Methods("POST")
@@ -85,11 +93,11 @@ func main() {
 	router.HandleFunc("/donations", CreateDonation).Methods("POST")
 	router.HandleFunc("/donations/{id}", UpdateDonation).Methods("POST")
 	router.HandleFunc("/donations/{id}", DeleteDonation).Methods("DELETE")
-	log.Fatal(http.ListenAndServe(":8000", router))
+	fmt.Println("Listening at 8000")
+	log.Fatal(http.ListenAndServe(":8000", handlers.CORS(originsOk, headersOk, methodsOk)(router)))
 }
 
 func GetDonors(w http.ResponseWriter, r *http.Request) {
-
 	var donors []DonorFmt
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -123,7 +131,6 @@ func GetDonors(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(donors)
 }
 func GetDonor(w http.ResponseWriter, r *http.Request) {
-
 	var donor Donor
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -148,28 +155,36 @@ func GetDonor(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(donorFmt)
 }
 func CreateDonor(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("CreateDonor started")
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
-		fmt.Println("ERR 1", err.Error)
+		fmt.Println("ERR 1")
+		fmt.Println(err.Error())
 		panic(err)
 	}
 	defer db.Close()
 
 	email := r.Form.Get("email")
 	var theEmail string
-	fmt.Println(theEmail)
+	fmt.Println("Form.Encode: ", r.Form.Encode())
+	fmt.Println("Form.Get('email'): ", r.Form.Get("email"))
+	fmt.Println("Body: ", r.Body)
+	fmt.Println("URL: ", r.URL)
 
 	sqlStatement := `SELECT email FROM donors WHERE email=$1;`
 	row := db.QueryRow(sqlStatement, email)
 	err = row.Scan(&theEmail)
 	if err == nil {
-		fmt.Println("ERR 2", err.Error)
+		fmt.Println("ERR ")
+
+		fmt.Println(err.Error())
 		fmt.Println("User Already Exist")
 	} else {
+		fmt.Println(err.Error())
 		r.ParseForm()
 		email = r.Form.Get("email")
 		name := r.Form.Get("name")
@@ -250,7 +265,6 @@ func UpdateDonor(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetHospitals(w http.ResponseWriter, r *http.Request) {
-
 	var hospitals []HospitalFmt
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -284,7 +298,6 @@ func GetHospitals(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(hospitals)
 }
 func GetHospital(w http.ResponseWriter, r *http.Request) {
-
 	var hospital Hospital
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -407,7 +420,6 @@ func UpdateHospital(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetDonations(w http.ResponseWriter, r *http.Request) {
-
 	var donations []DonationFmt
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -440,7 +452,6 @@ func GetDonations(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(donations)
 }
 func GetDonorDonations(w http.ResponseWriter, r *http.Request) {
-
 	var donations []DonationFmt
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
