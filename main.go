@@ -93,6 +93,7 @@ func main() {
 
 	router.HandleFunc("/hospitals", GetHospitals).Methods("GET")
 	router.HandleFunc("/hospitals/{email}", GetHospital).Methods("GET")
+	router.HandleFunc("/hospitalspass/{email}", hospitalLogin).Methods("GET")
 	router.HandleFunc("/hospitals", CreateHospital).Methods("POST")
 	router.HandleFunc("/hospitals/{id}", UpdateHospital).Methods("POST")
 	router.HandleFunc("/hospitals/{email}", DeleteHospital).Methods("DELETE")
@@ -183,7 +184,7 @@ func donorLogin(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("EMAIL: ", theEmail)
 	fmt.Println("PASSWORD: ", enteredPassword)
 
-	sqlStatement := `SELECT password FROM donors WHERE email=$1 ORDER BY id;`
+	sqlStatement := `SELECT password FROM donors WHERE email=$1;`
 
 	row := db.QueryRow(sqlStatement, theEmail)
 	err = row.Scan(&correctPassword)
@@ -363,6 +364,44 @@ func GetHospital(w http.ResponseWriter, r *http.Request) {
 	hospitalFmt := HospitalFmt{Id: hospital.Id.Int64, Email: hospital.Email.String, Name: hospital.Name.String, City: hospital.City.String, Password: hospital.Password.String}
 	json.NewEncoder(w).Encode(hospitalFmt)
 }
+func hospitalLogin(w http.ResponseWriter, r *http.Request) {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	params := mux.Vars(r)
+	r.ParseForm()
+	theEmail := params["email"]
+	enteredPassword := r.Form.Get("password")
+	correctPassword := r.Form.Get("password")
+
+	fmt.Println("EMAIL: ", theEmail)
+	fmt.Println("PASSWORD: ", enteredPassword)
+
+	sqlStatement := `SELECT password FROM hospitals WHERE email=$1;`
+
+	row := db.QueryRow(sqlStatement, theEmail)
+	err = row.Scan(&correctPassword)
+
+	fmt.Println("CORRECT PASSWORD: ", correctPassword)
+
+	result := false
+	if enteredPassword == correctPassword {
+		result = true
+	}
+	if err != nil {
+		result = false
+	}
+	json.NewEncoder(w).Encode(result)
+
+}
+
 func CreateHospital(w http.ResponseWriter, r *http.Request) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
