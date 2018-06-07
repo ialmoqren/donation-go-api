@@ -78,6 +78,7 @@ func main() {
 
 	router.HandleFunc("/donors", GetDonors).Methods("GET")
 	router.HandleFunc("/donors/{id}", GetDonor).Methods("GET")
+	router.HandleFunc("/donorspass/{email}", donorLogin).Methods("GET")
 	router.HandleFunc("/donors", CreateDonor).Methods("POST")
 	router.HandleFunc("/donors/{id}", UpdateDonor).Methods("POST")
 	router.HandleFunc("/donors/{email}", DeleteDonor).Methods("DELETE")
@@ -154,6 +155,46 @@ func GetDonor(w http.ResponseWriter, r *http.Request) {
 	donorFmt := DonorFmt{Id: donor.Id.Int64, Email: donor.Email.String, Name: donor.Name.String, Gender: donor.Gender.String, Age: donor.Age.Int64, City: donor.City.String, Password: donor.Password.String}
 	json.NewEncoder(w).Encode(donorFmt)
 }
+
+func donorLogin(w http.ResponseWriter, r *http.Request) {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	params := mux.Vars(r)
+	r.ParseForm()
+	theEmail := params["email"]
+	enteredPassword := r.Form.Get("password")
+	correctPassword := r.Form.Get("password")
+
+	fmt.Println("EMAIL: ", theEmail)
+	fmt.Println("PASSWORD: ", enteredPassword)
+
+	sqlStatement := `SELECT password FROM donors WHERE email=$1 ORDER BY id;`
+
+	row := db.QueryRow(sqlStatement, theEmail)
+	err = row.Scan(&correctPassword)
+
+	fmt.Println("CORRECT PASSWORD: ", correctPassword)
+
+	result := false
+	if enteredPassword == correctPassword {
+		result = true
+	}
+	if err != nil {
+		result = false
+	}
+
+	json.NewEncoder(w).Encode(result)
+
+}
+
 func CreateDonor(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("CreateDonor started")
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
@@ -170,10 +211,6 @@ func CreateDonor(w http.ResponseWriter, r *http.Request) {
 
 	email := r.Form.Get("email")
 	var theEmail string
-	fmt.Println("Form.Encode: ", r.Form.Encode())
-	fmt.Println("Form.Get('email'): ", r.Form.Get("email"))
-	fmt.Println("Body: ", r.Body)
-	fmt.Println("URL: ", r.URL)
 
 	sqlStatement := `SELECT email FROM donors WHERE email=$1;`
 	row := db.QueryRow(sqlStatement, email)
