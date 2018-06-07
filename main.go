@@ -77,7 +77,7 @@ func main() {
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
 	router.HandleFunc("/donors", GetDonors).Methods("GET")
-	router.HandleFunc("/donors/{email}", GetDonor).Methods("GET")
+	router.HandleFunc("/donors/{id}", GetDonor).Methods("GET")
 	router.HandleFunc("/donors", CreateDonor).Methods("POST")
 	router.HandleFunc("/donors/{id}", UpdateDonor).Methods("POST")
 	router.HandleFunc("/donors/{email}", DeleteDonor).Methods("DELETE")
@@ -143,9 +143,9 @@ func GetDonor(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	params := mux.Vars(r)
-	theEmail := params["email"]
-	sqlStatement := `SELECT * FROM donors WHERE email=$1 ORDER BY id;`
-	row := db.QueryRow(sqlStatement, theEmail)
+	theId := params["id"]
+	sqlStatement := `SELECT * FROM donors WHERE id=$1 ORDER BY id;`
+	row := db.QueryRow(sqlStatement, theId)
 	err = row.Scan(&donor.Id, &donor.Email, &donor.Name, &donor.Gender, &donor.Age, &donor.City, &donor.Password)
 	if err != nil {
 		fmt.Println(err)
