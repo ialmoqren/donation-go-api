@@ -60,12 +60,20 @@ type Donation struct {
 	Type    sql.NullString `json:"type"`
 	Notes   sql.NullString `json:"notes"`
 	DonorId sql.NullString `json:"donor_id"`
+	Gender  sql.NullString `json:"gender"`
+	Email   sql.NullString `json:"email"`
+	Age     sql.NullInt64  `json:"age"`
+	City    sql.NullString `json:"city"`
 }
 type DonationFmt struct {
 	Id      int64  `json:"id"`
 	Type    string `json:"type"`
 	Notes   string `json:"notes"`
 	DonorId string `json:"donor_id"`
+	Gender  string `json:"gender"`
+	Email   string `json:"email"`
+	Age     int64  `json:"age"`
+	City    string `json:"city"`
 }
 
 func main() {
@@ -77,7 +85,7 @@ func main() {
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
 	router.HandleFunc("/donors", GetDonors).Methods("GET")
-	router.HandleFunc("/donors/{id}", GetDonor).Methods("GET")
+	router.HandleFunc("/donors/{email}", GetDonor).Methods("GET")
 	router.HandleFunc("/donorspass/{email}", donorLogin).Methods("GET")
 	router.HandleFunc("/donors", CreateDonor).Methods("POST")
 	router.HandleFunc("/donors/{id}", UpdateDonor).Methods("POST")
@@ -144,9 +152,9 @@ func GetDonor(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	params := mux.Vars(r)
-	theId := params["id"]
-	sqlStatement := `SELECT * FROM donors WHERE id=$1 ORDER BY id;`
-	row := db.QueryRow(sqlStatement, theId)
+	theEmail := params["email"]
+	sqlStatement := `SELECT * FROM donors WHERE email=$1 ORDER BY id;`
+	row := db.QueryRow(sqlStatement, theEmail)
 	err = row.Scan(&donor.Id, &donor.Email, &donor.Name, &donor.Gender, &donor.Age, &donor.City, &donor.Password)
 	if err != nil {
 		fmt.Println(err)
@@ -155,7 +163,6 @@ func GetDonor(w http.ResponseWriter, r *http.Request) {
 	donorFmt := DonorFmt{Id: donor.Id.Int64, Email: donor.Email.String, Name: donor.Name.String, Gender: donor.Gender.String, Age: donor.Age.Int64, City: donor.City.String, Password: donor.Password.String}
 	json.NewEncoder(w).Encode(donorFmt)
 }
-
 func donorLogin(w http.ResponseWriter, r *http.Request) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -194,7 +201,6 @@ func donorLogin(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 
 }
-
 func CreateDonor(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("CreateDonor started")
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
@@ -466,18 +472,34 @@ func GetDonations(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT * FROM donations ORDER BY id;")
+	rows, err := db.Query(`SELECT donation.id, 
+		donation.type, 
+		donation.notes,
+		donor.gender,
+		donor.email,
+		donor.age,
+		donor.city
+   FROM public.donations donation JOIN public.donors donor
+	 ON donation.donor_id = donor.id
+	 ORDER BY id;`)
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var donation Donation
-		err = rows.Scan(&donation.Id, &donation.Type, &donation.Notes, &donation.DonorId)
+		err = rows.Scan(&donation.Id, &donation.Type, &donation.Notes, &donation.Gender, &donation.Email, &donation.Age, &donation.City)
 		if err != nil {
 			panic(err)
 		}
-		donations = append(donations, DonationFmt{Id: donation.Id.Int64, Type: donation.Type.String, Notes: donation.Notes.String, DonorId: donation.DonorId.String})
+		donations = append(donations, DonationFmt{Id: donation.Id.Int64,
+			Type:    donation.Type.String,
+			Notes:   donation.Notes.String,
+			DonorId: donation.DonorId.String,
+			Gender:  donation.Gender.String,
+			Email:   donation.Email.String,
+			Age:     donation.Age.Int64,
+			City:    donation.City.String})
 	}
 	err = rows.Err()
 	if err != nil {
@@ -501,18 +523,36 @@ func GetDonorDonations(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	theId := params["id"]
 
-	rows, err := db.Query(`SELECT * FROM donations WHERE donor_id=$1 ORDER BY id;`, theId)
+	rows, err := db.Query(`SELECT donation.id, 
+		donation.type, 
+		donation.notes,
+		donor.gender,
+		donor.email,
+		donor.age,
+		donor.city
+   FROM public.donations donation JOIN public.donors donor
+	 ON donation.donor_id = donor.id
+	 WHERE donor_id=$1 
+	 ORDER BY id;`, theId)
 	if err != nil {
 		panic(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var donation Donation
-		err = rows.Scan(&donation.Id, &donation.Type, &donation.Notes, &donation.DonorId)
+		err = rows.Scan(&donation.Id, &donation.Type, &donation.Notes, &donation.Gender, &donation.Email, &donation.Age, &donation.City)
 		if err != nil {
 			panic(err)
 		}
-		donations = append(donations, DonationFmt{Id: donation.Id.Int64, Type: donation.Type.String, Notes: donation.Notes.String, DonorId: donation.DonorId.String})
+		donations = append(donations, DonationFmt{
+			Id:      donation.Id.Int64,
+			Type:    donation.Type.String,
+			Notes:   donation.Notes.String,
+			DonorId: donation.DonorId.String,
+			Gender:  donation.Gender.String,
+			Email:   donation.Email.String,
+			Age:     donation.Age.Int64,
+			City:    donation.City.String})
 	}
 	err = rows.Err()
 	if err != nil {
