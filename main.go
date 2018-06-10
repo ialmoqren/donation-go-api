@@ -80,13 +80,13 @@ func main() {
 
 	router := mux.NewRouter()
 
-	headersOk := handlers.AllowedHeaders([]string{"POST"})
+	headersOk := handlers.AllowedHeaders([]string{"POST", "DELETE"})
 	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ORIGIN_ALLOWED")})
-	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS", "DELETE"})
 
 	router.HandleFunc("/donors", GetDonors).Methods("GET")
 	router.HandleFunc("/donors/{email}", GetDonor).Methods("GET")
-	router.HandleFunc("/donorspass/{email}", donorLogin).Methods("GET")
+	router.HandleFunc("/donorspass/{email}", DonorLogin).Methods("GET")
 	router.HandleFunc("/donors", CreateDonor).Methods("POST")
 	router.HandleFunc("/donors/{id}", UpdateDonor).Methods("POST")
 	router.HandleFunc("/donors/{email}", DeleteDonor).Methods("DELETE")
@@ -164,7 +164,7 @@ func GetDonor(w http.ResponseWriter, r *http.Request) {
 	donorFmt := DonorFmt{Id: donor.Id.Int64, Email: donor.Email.String, Name: donor.Name.String, Gender: donor.Gender.String, Age: donor.Age.Int64, City: donor.City.String, Password: donor.Password.String}
 	json.NewEncoder(w).Encode(donorFmt)
 }
-func donorLogin(w http.ResponseWriter, r *http.Request) {
+func DonorLogin(w http.ResponseWriter, r *http.Request) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -203,7 +203,6 @@ func donorLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 func CreateDonor(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("CreateDonor started")
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -223,12 +222,8 @@ func CreateDonor(w http.ResponseWriter, r *http.Request) {
 	row := db.QueryRow(sqlStatement, email)
 	err = row.Scan(&theEmail)
 	if err == nil {
-		fmt.Println("ERR ")
-
-		fmt.Println(err.Error())
 		fmt.Println("User Already Exist")
 	} else {
-		fmt.Println(err.Error())
 		r.ParseForm()
 		email = r.Form.Get("email")
 		name := r.Form.Get("name")
@@ -243,7 +238,12 @@ func CreateDonor(w http.ResponseWriter, r *http.Request) {
 			email, name, gender, age, city, password)
 			VALUES  ($1, $2, $3, $4, $5, $6)`
 
-		db.QueryRow(sqlStatement, email, name, gender, age, city, password)
+		_, err := db.Exec(sqlStatement, email, name, gender, age, city, password)
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			json.NewEncoder(w).Encode(true)
+		}
 	}
 }
 func DeleteDonor(w http.ResponseWriter, r *http.Request) {
@@ -261,11 +261,20 @@ func DeleteDonor(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	theEmail := params["email"]
 
-	sqlStatement := `
+	sqlStatement1 := `
+	DELETE FROM donations
+	WHERE donor_id = (	SELECT id
+					FROM donors
+					WHERE email = $1);`
+	sqlStatement2 := `
 	DELETE FROM donors
-	WHERE email = $1`
+	WHERE email = $1;`
+	fmt.Println("To be deleted:", theEmail)
+	_, err1 := db.Exec(sqlStatement1, theEmail)
+	_, err2 := db.Exec(sqlStatement2, theEmail)
+	fmt.Println(err1.Error())
+	fmt.Println(err2.Error())
 
-	db.QueryRow(sqlStatement, theEmail)
 }
 func UpdateDonor(w http.ResponseWriter, r *http.Request) {
 	var id sql.NullInt64
@@ -399,9 +408,7 @@ func hospitalLogin(w http.ResponseWriter, r *http.Request) {
 		result = false
 	}
 	json.NewEncoder(w).Encode(result)
-
 }
-
 func CreateHospital(w http.ResponseWriter, r *http.Request) {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -416,15 +423,14 @@ func CreateHospital(w http.ResponseWriter, r *http.Request) {
 
 	email := r.Form.Get("email")
 	var theEmail string
-	fmt.Println(theEmail)
 
 	sqlStatement := `SELECT email FROM hospitals WHERE email=$1;`
 	row := db.QueryRow(sqlStatement, email)
 	err = row.Scan(&theEmail)
 	if err == nil {
-		fmt.Println("ERR 2", err.Error)
 		fmt.Println("User Already Exist")
 	} else {
+		fmt.Println(err.Error())
 		r.ParseForm()
 		email = r.Form.Get("email")
 		name := r.Form.Get("name")
@@ -437,7 +443,12 @@ func CreateHospital(w http.ResponseWriter, r *http.Request) {
 			email, name, city, password)
 			VALUES  ($1, $2, $3, $4)`
 
-		db.QueryRow(sqlStatement, email, name, city, password)
+		_, err := db.Exec(sqlStatement, email, name, city, password)
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			json.NewEncoder(w).Encode(true)
+		}
 	}
 }
 func DeleteHospital(w http.ResponseWriter, r *http.Request) {
@@ -459,7 +470,9 @@ func DeleteHospital(w http.ResponseWriter, r *http.Request) {
 	DELETE FROM hospitals
 	WHERE email = $1`
 
-	db.QueryRow(sqlStatement, theEmail)
+	fmt.Println("To be deleted:", theEmail)
+	_, err = db.Exec(sqlStatement, theEmail)
+	fmt.Println(err.Error())
 }
 func UpdateHospital(w http.ResponseWriter, r *http.Request) {
 	var id sql.NullInt64
