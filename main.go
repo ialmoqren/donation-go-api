@@ -78,11 +78,13 @@ type DonationFmt struct {
 
 func main() {
 
-	router := mux.NewRouter()
-
-	headersOk := handlers.AllowedHeaders([]string{"POST", "DELETE"})
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With"})
 	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ORIGIN_ALLOWED")})
-	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS", "DELETE"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+
+	fmt.Println("Here")
+	//db.Connect();
+	router := mux.NewRouter()
 
 	router.HandleFunc("/donors", GetDonors).Methods("GET")
 	router.HandleFunc("/donors/{email}", GetDonor).Methods("GET")
@@ -104,10 +106,13 @@ func main() {
 	router.HandleFunc("/donations/{id}", UpdateDonation).Methods("POST")
 	router.HandleFunc("/donations/{id}", DeleteDonation).Methods("DELETE")
 	fmt.Println("Listening at 8000")
-	log.Fatal(http.ListenAndServe(":8000", handlers.CORS(originsOk, headersOk, methodsOk)(router)))
+	log.Fatal(http.ListenAndServe(":8000"+os.Getenv("PORT"), handlers.CORS(originsOk, headersOk, methodsOk)(router)))
 }
 
 func GetDonors(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var donors []DonorFmt
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -141,6 +146,9 @@ func GetDonors(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(donors)
 }
 func GetDonor(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var donor Donor
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -165,6 +173,9 @@ func GetDonor(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(donorFmt)
 }
 func DonorLogin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -203,6 +214,9 @@ func DonorLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 func CreateDonor(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -247,6 +261,9 @@ func CreateDonor(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func DeleteDonor(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -277,6 +294,9 @@ func DeleteDonor(w http.ResponseWriter, r *http.Request) {
 
 }
 func UpdateDonor(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var id sql.NullInt64
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -317,6 +337,9 @@ func UpdateDonor(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetHospitals(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var hospitals []HospitalFmt
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -350,6 +373,9 @@ func GetHospitals(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(hospitals)
 }
 func GetHospital(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var hospital Hospital
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -374,6 +400,9 @@ func GetHospital(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(hospitalFmt)
 }
 func hospitalLogin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -410,6 +439,9 @@ func hospitalLogin(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 func CreateHospital(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -452,6 +484,9 @@ func CreateHospital(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func DeleteHospital(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -475,6 +510,9 @@ func DeleteHospital(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(err.Error())
 }
 func UpdateHospital(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var id sql.NullInt64
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -513,6 +551,9 @@ func UpdateHospital(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetDonations(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var donations []DonationFmt
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -561,6 +602,9 @@ func GetDonations(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(donations)
 }
 func GetDonorDonations(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var donations []DonationFmt
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -614,6 +658,9 @@ func GetDonorDonations(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(donations)
 }
 func CreateDonation(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -639,6 +686,9 @@ func CreateDonation(w http.ResponseWriter, r *http.Request) {
 	db.QueryRow(sqlStatement, theType, notes, donorEmail)
 }
 func DeleteDonation(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
