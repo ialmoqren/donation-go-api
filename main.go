@@ -78,9 +78,10 @@ type DonationFmt struct {
 
 func main() {
 
-	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With"})
-	originsOk := handlers.AllowedOrigins([]string{os.Getenv("ORIGIN_ALLOWED")})
-	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+	originsOk := handlers.AllowedOrigins([]string{"*"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "HEAD", "OPTIONS"})
+	credentialsOk := handlers.AllowCredentials()
 
 	fmt.Println("Here")
 	//db.Connect();
@@ -106,12 +107,12 @@ func main() {
 	router.HandleFunc("/donations/{id}", UpdateDonation).Methods("POST")
 	router.HandleFunc("/donations/{id}", DeleteDonation).Methods("DELETE")
 	fmt.Println("Listening at 8000")
-	log.Fatal(http.ListenAndServe(":8000"+os.Getenv("PORT"), handlers.CORS(originsOk, headersOk, methodsOk)(router)))
+	log.Fatal(http.ListenAndServe(":8000"+os.Getenv("PORT"), handlers.CORS(originsOk, headersOk, methodsOk, credentialsOk)(router)))
 }
 
 func GetDonors(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	var donors []DonorFmt
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
@@ -710,6 +711,8 @@ func DeleteDonation(w http.ResponseWriter, r *http.Request) {
 	db.QueryRow(sqlStatement, theId)
 }
 func UpdateDonation(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	var id sql.NullInt64
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
