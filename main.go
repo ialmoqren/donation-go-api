@@ -7,10 +7,11 @@ import (
 	"log"
 	"net/http"
 
+	"os"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
-	"os"
 )
 
 const (
@@ -80,7 +81,7 @@ func main() {
 
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
 	originsOk := handlers.AllowedOrigins([]string{"*"})
-	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "HEAD", "OPTIONS"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "HEAD", "OPTIONS", "OPTIONS"})
 	credentialsOk := handlers.AllowCredentials()
 
 	fmt.Println("Here")
