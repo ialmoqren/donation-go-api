@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"crypto/rand"
 	"os"
 
 	"github.com/gorilla/handlers"
@@ -39,6 +40,10 @@ type DonorFmt struct {
 	Age      int64  `json:"age"`
 	City     string `json:"city"`
 	Password string `json:"password"`
+}
+type tokenAndId struct {
+	Id    int64  `json:"id"`
+	Token string `json:"email"`
 }
 
 type Hospital struct {
@@ -84,13 +89,12 @@ func main() {
 	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "HEAD", "OPTIONS", "DELETE"})
 	credentialsOk := handlers.AllowCredentials()
 
-	fmt.Println("Here")
-	//db.Connect();
 	router := mux.NewRouter()
 
 	router.HandleFunc("/donors", GetDonors).Methods("GET")
-	router.HandleFunc("/donors/{email}", GetDonor).Methods("GET")
+	router.HandleFunc("/donors/{id}", GetDonor).Methods("GET")
 	router.HandleFunc("/donorspass/{email}", DonorLogin).Methods("GET")
+	router.HandleFunc("/donortoken", DonorAuthenticated).Methods("GET")
 	router.HandleFunc("/donors", CreateDonor).Methods("POST")
 	router.HandleFunc("/donors/{id}", UpdateDonor).Methods("POST")
 	router.HandleFunc("/donors/{email}", DeleteDonor).Methods("DELETE")
@@ -108,7 +112,15 @@ func main() {
 	router.HandleFunc("/donations/{id}", UpdateDonation).Methods("POST")
 	router.HandleFunc("/donations/{id}", DeleteDonation).Methods("DELETE")
 	fmt.Println("Listening at 8000")
-	log.Fatal(http.ListenAndServe(":8000"+os.Getenv("PORT"), handlers.CORS(originsOk, headersOk, methodsOk, credentialsOk)(router)))
+	log.Fatal(http.ListenAndServe(":8000"+os.Getenv("PORT"), handlers.LoggingHandler(os.Stdout, handlers.CORS(originsOk, headersOk, methodsOk, credentialsOk)(router))))
+}
+
+var theTokens = make(map[string]string)
+
+func tokenGenerator() string {
+	b := make([]byte, 20)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }
 
 func GetDonors(w http.ResponseWriter, r *http.Request) {
@@ -163,9 +175,9 @@ func GetDonor(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	params := mux.Vars(r)
-	theEmail := params["email"]
-	sqlStatement := `SELECT * FROM donors WHERE email=$1 ORDER BY id;`
-	row := db.QueryRow(sqlStatement, theEmail)
+	theId := params["id"]
+	sqlStatement := `SELECT * FROM donors WHERE id=$1 ORDER BY id;`
+	row := db.QueryRow(sqlStatement, theId)
 	err = row.Scan(&donor.Id, &donor.Email, &donor.Name, &donor.Gender, &donor.Age, &donor.City, &donor.Password)
 	if err != nil {
 		fmt.Println(err)
@@ -193,16 +205,12 @@ func DonorLogin(w http.ResponseWriter, r *http.Request) {
 	theEmail := params["email"]
 	enteredPassword := r.Form.Get("password")
 	correctPassword := r.Form.Get("password")
+	var theId int64
 
-	fmt.Println("EMAIL: ", theEmail)
-	fmt.Println("PASSWORD: ", enteredPassword)
-
-	sqlStatement := `SELECT password FROM donors WHERE email=$1;`
+	sqlStatement := `SELECT password, id FROM donors WHERE email=$1;`
 
 	row := db.QueryRow(sqlStatement, theEmail)
-	err = row.Scan(&correctPassword)
-
-	fmt.Println("CORRECT PASSWORD: ", correctPassword)
+	err = row.Scan(&correctPassword, &theId)
 
 	result := false
 	if enteredPassword == correctPassword {
@@ -212,7 +220,28 @@ func DonorLogin(w http.ResponseWriter, r *http.Request) {
 		result = false
 	}
 
-	json.NewEncoder(w).Encode(result)
+	if result {
+		fmt.Println("CORRECT")
+
+		myToken := tokenGenerator()
+		theTokens[myToken] = theEmail
+
+		tokenAndId := tokenAndId{Id: theId, Token: myToken}
+		json.NewEncoder(w).Encode(tokenAndId)
+	} else {
+		json.NewEncoder(w).Encode("false")
+	}
+}
+
+func DonorAuthenticated(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	r.ParseForm()
+	theToken := r.Form.Get("token")
+	fmt.Println("THE EMAIL", theTokens[theToken])
+
+	json.NewEncoder(w).Encode(theTokens[theToken])
 
 }
 func CreateDonor(w http.ResponseWriter, r *http.Request) {
