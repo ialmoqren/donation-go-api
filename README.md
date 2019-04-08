@@ -1,6 +1,8 @@
 This is the backend side of the blood donation site
 
-## Database
+## Running locally
+
+#### 1. Database setup
 
 You should have a local postgres database with the following details
 
@@ -13,16 +15,17 @@ Also you can edit them in `main.go` (line 17)
 
 You should have three tables in the db, this is how each of them is structured
  
-#### donations
+##### donations
 ![](./readmeScreenshots/donationsTable.png)
 
-#### donors
+##### donors
 ![](./readmeScreenshots/donorsTable.png)
 
-#### hospitals
+##### hospitals
 ![](./readmeScreenshots/hospitalsTable.png)
 
-## Installation & Development
+#### 2. Installation & Development
+
 Clone the repository
 ```shell
 git clone https://github.com/ialmoqren/donation-go-api
