@@ -1,3 +1,11 @@
+# Donors Site
+The project is a health donation website where people can list what they can donate and hospitals can choose from those listings. It was built to apply and improve my skills in React and Go
+
+This repo only includes the backend side of the project, the frontend lives [here](https://github.com/ialmoqren/donation-react)
+
+## Demo
+A demo of the website is available in the [frontend repo ](https://github.com/ialmoqren/donation-react)
+
 This is the backend side of the blood donation site
 
 ## Running locally
